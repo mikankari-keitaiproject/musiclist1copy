@@ -29,19 +29,20 @@ public class PlayerView extends View {
 	String artist;
 	int BPM;
 	double seek;
+	byte[] waveform;
 	
 	public PlayerView(Context context){
 		super(context);
 		
 		paint = new Paint();
     	Resources resources = this.getContext().getResources();
-		bitmaps = new Bitmap[9];
-		points_lefttop = new Point[9];
-		points_rightbottom = new Point[8];
+		bitmaps = new Bitmap[8];
+		points_lefttop = new Point[8];
+		// TODO: display.getWidth()よりもthis.getWidth()のほうがいいかも、クライアント領域で計算してくれる
     	WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
-        Display disp = wm.getDefaultDisplay();
-        int screenWidth = disp.getWidth();
-        int screenHeight = disp.getHeight();        
+        Display display = wm.getDefaultDisplay();
+        int screenWidth = display.getWidth();
+        int screenHeight = display.getHeight();        
 		bitmaps[0] = BitmapFactory.decodeResource(resources, R.drawable.backgroundnote);
 		points_lefttop[0] = new Point((int)(screenWidth * 0.5) - (int)(bitmaps[0].getWidth() * 0.5), 400 - 55);
 		bitmaps[1] = BitmapFactory.decodeResource(resources, R.drawable.title);
@@ -58,11 +59,12 @@ public class PlayerView extends View {
 		points_lefttop[6] = new Point(points_lefttop[5].x + bitmaps[5].getWidth(), screenHeight - bitmaps[6].getHeight() - 45);
 		bitmaps[7] = BitmapFactory.decodeResource(resources, R.drawable.loopbutton);
 		points_lefttop[7] = new Point(points_lefttop[6].x + bitmaps[6].getWidth(), screenHeight - bitmaps[7].getHeight() - 45);
-		bitmaps[8] = BitmapFactory.decodeResource(resources, R.drawable.wave);
-		points_lefttop[8] = new Point(0, 45 - 55);
+//		bitmaps[8] = BitmapFactory.decodeResource(resources, R.drawable.wave);
+//		points_lefttop[8] = new Point(0, 45 - 55);
 		title = "";
 		artist = "";
 		BPM = 0;
+		waveform = null;
  	}
 	
 	public void onDraw(Canvas canvas){
@@ -70,6 +72,24 @@ public class PlayerView extends View {
 		
 		paint.reset();
 		paint.setAntiAlias(true);
+		
+		// 波形表示
+		paint.setARGB(255, 36, 170, 0);
+		int zero_y = 88;
+		int wave_width = 480;
+		int wave_height = 176;
+		if(waveform != null){
+	        for (int i = 0; i < waveform.length - 1; i++) {
+	            int x1 = wave_width * i / (waveform.length - 1);
+	            int y1 = zero_y + ((byte)(waveform[i] + 128)) * (wave_height / 64);
+	            int x2 = wave_width * (i + 1) / (waveform.length - 1);
+	            int y2 = zero_y + ((byte)(waveform[i + 1] + 128)) * (wave_height / 64);
+		        canvas.drawLine(x1, y1, x2, y2, paint);
+	        }
+		}else{
+			canvas.drawLine(0, zero_y, getWidth(), zero_y, paint);
+		}
+		
 		
 		// ビットマップ
 		for(int i = 0; i < bitmaps.length; i++){
@@ -152,5 +172,9 @@ public class PlayerView extends View {
     
     public void setSeek(double seek){
     	this.seek = seek;
+    }
+    
+    public void setWaveform(byte[] waveform){
+    	this.waveform = waveform;
     }
 }

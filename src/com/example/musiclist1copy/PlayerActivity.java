@@ -13,7 +13,10 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
+import android.media.audiofx.Visualizer;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.widget.ArrayAdapter;
@@ -27,6 +30,8 @@ public class PlayerActivity extends Activity {
 	private MediaPlayer player;
     private ArrayAdapter musiclist;
     private int musiclist_index;
+    private Visualizer visualizer;
+    private boolean isVisualizerSupported;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +61,7 @@ public class PlayerActivity extends Activity {
 			}
 		});
 		musiclist_index = 0;
+		isVisualizerSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD;
 
 		new Timer().schedule(new TimerTask() {
 			
@@ -203,6 +209,7 @@ public class PlayerActivity extends Activity {
 			player.stop();
 		}
 		Data data = (Data)musiclist.getItem(position);
+		// TODO 再生開始時に毎回初期化するのは効率悪いのかな？player.reset();player.setDataSource();あたりはどうか
 		player = MediaPlayer.create(this, Uri.parse(data.data));
 		player.setOnCompletionListener(new OnCompletionListener() {
 			
@@ -214,7 +221,45 @@ public class PlayerActivity extends Activity {
 		});
 		musiclist_index = position;
 		view.setData(data);
-		startItem();
+		player.start();
+		if(isVisualizerSupported){
+	    	visualizer = new Visualizer(player.getAudioSessionId());
+	    	visualizer.setEnabled(false);
+	    	visualizer.setCaptureSize(Visualizer.getCaptureSizeRange()[1]);
+	    	visualizer.setDataCaptureListener(new Visualizer.OnDataCaptureListener() {
+				
+				@Override
+				public void onWaveFormDataCapture(Visualizer visualizer, byte[] waveform,
+						int samplingRate) {
+					// TODO 自動生成されたメソッド・スタブ
+		   	        for (int h = 0; h < 1; h++) {
+						int i = waveform.length;
+		   	        	for (int j = 1; j < i; j++) {
+//							waveform[j] = (byte)((waveform[j - 1] + waveform[j]) * 0.5);
+//							waveform[j - 1] = waveform[j];
+//		   	        		waveform[j] = (byte)(waveform[j - 1] - waveform[j]);
+//							waveform[j] *= 0.5;
+						}
+					}
+					updateWaveform(waveform);
+				}
+				
+				@Override
+				public void onFftDataCapture(Visualizer visualizer, byte[] fft,
+						int samplingRate) {
+					// TODO 自動生成されたメソッド・スタブ
+				}
+			},
+			Visualizer.getMaxCaptureRate(),
+			true, false);	// waveform or fft
+	    	visualizer.setEnabled(true);			
+		}else{
+			visualizer = null;
+		}
+	}
+	
+	public void updateWaveform(byte[] waveform){
+		view.setWaveform(waveform);
 	}
 	
 	public void startItem(){
